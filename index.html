@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRIDGE DROP - Balanced Span Edition</title>
+<style>
+*{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#07111f;color:white}
+header{height:82px;background:#0d1726;border-bottom:1px solid #263449;display:flex;align-items:center;justify-content:space-between;padding:0 30px}
+.logo h1{margin:0;font-size:28px}.logo p{margin:4px 0 0;color:#8da0b8}.stage{background:#172438;padding:11px 18px;border-radius:10px;font-weight:800}
+.game{display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 82px)}
+.controls{background:#0d1726;border-right:1px solid #263449;padding:22px;overflow-y:auto;max-height:calc(100vh - 82px)}
+.control{margin-bottom:20px}.control-title{font-size:12px;color:#8495ab;font-weight:800;margin-bottom:8px}
+select,input[type=range]{width:100%}select{padding:11px;border-radius:8px;border:1px solid #34435a;background:#172438;color:white;font-size:14px}
+.value{margin-top:6px;font-weight:800;font-size:17px}.sub-controls{padding:14px;border:1px solid #37465b;border-radius:10px;background:#111e30}
+.hint{margin-top:7px;font-size:11px;color:#8495ab;line-height:1.4}
+.cost-box,#budgetSystem{background:#162337;padding:14px;border-radius:9px;margin-top:14px}.cost{font-size:21px;font-weight:900}
+.budget-row{display:flex;justify-content:space-between;margin-bottom:9px;font-size:13px;color:#91a3b8}.budget-row b{color:white}
+#budgetBar{height:10px;background:#263449;border-radius:10px;overflow:hidden;margin-top:10px}#budgetFill{height:100%;width:0;background:#22c55e;transition:.25s}
+#budgetStatus{text-align:center;font-weight:900;font-size:13px;margin-top:10px}
+.world{position:relative;overflow:hidden;min-height:720px;background:linear-gradient(#5fa8d3 0%,#8ecae6 48%,#b7d8e8 62%,#24485c 63%,#071725 100%)}
+.sun{position:absolute;width:85px;height:85px;border-radius:50%;background:#ffd166;right:9%;top:80px;box-shadow:0 0 45px #ffd16699}
+.mountain{position:absolute;bottom:37%;width:0;height:0;border-left:230px solid transparent;border-right:230px solid transparent;border-bottom:260px solid #527487;opacity:.65}
+.m1{left:2%}.m2{right:0;transform:scale(.8)}.water{position:absolute;left:0;right:0;bottom:0;height:30%;background:repeating-linear-gradient(0deg,#0d4d68 0 8px,#12617f 9px 11px)}
+.cliff{position:absolute;top:485px;width:27%;height:300px;background:linear-gradient(90deg,#4b3b30,#745642);border-top:18px solid #3d6b45;z-index:6}
+.cliff.left{left:0;clip-path:polygon(0 0,100% 0,92% 12%,84% 50%,72% 100%,0 100%)}.cliff.right{right:0;clip-path:polygon(0 0,100% 0,100% 100%,28% 100%,16% 50%,8% 12%)}
+.results{position:absolute;top:20px;right:20px;width:270px;background:rgba(5,12,22,.91);border:1px solid #34465e;border-radius:14px;padding:18px;z-index:30}
+.result-row{display:flex;justify-content:space-between;margin-bottom:11px}.result-label{color:#8395aa}.result-value{font-weight:800}
+#finalResult{text-align:center;font-size:21px;font-weight:900;margin-top:12px;padding-top:12px;border-top:1px solid #334155}
+#dropObject{position:absolute;left:50%;top:110px;transform:translateX(-50%);font-size:55px;z-index:50;white-space:nowrap;filter:drop-shadow(0 7px 4px #0006)}
+.bridge-container{position:absolute;width:70%;height:300px;left:15%;top:315px;z-index:10}#bridgeGraphic{width:100%;height:300px;overflow:visible}
+.road{stroke:#242b33;stroke-width:10}.road-line{stroke:#f1c84b;stroke-width:2;stroke-dasharray:28 22}
+.deck,.deck-bottom,.truss-member,.tower,.stay-cable,.main-cable,.hanger{stroke-linecap:round;fill:none}.support{fill:#aab2ba;stroke:#77818b;stroke-width:3}.bearing{fill:#343d47}.joint{stroke:#d8dee5;stroke-width:2}
+.mat-wood .deck,.mat-wood .deck-bottom,.mat-wood .truss-member,.mat-wood .tower{stroke:#9a6337}.mat-wood .joint{fill:#6e4528}
+.mat-concrete .deck,.mat-concrete .deck-bottom,.mat-concrete .truss-member,.mat-concrete .tower{stroke:#aab2ba}.mat-concrete .joint{fill:#7f8b99}
+.mat-steel .deck,.mat-steel .deck-bottom,.mat-steel .truss-member,.mat-steel .tower{stroke:#b8c4d1}.mat-steel .joint{fill:#758392}
+.mat-highSteel .deck,.mat-highSteel .deck-bottom,.mat-highSteel .truss-member,.mat-highSteel .tower{stroke:#d7e3ef}.mat-highSteel .joint{fill:#8fa2b5}
+.stay-cable,.main-cable,.hanger{stroke:#e2e8f0}
+.drop-btn{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:100;border:0;border-radius:12px;padding:16px 58px;background:#dc2626;color:white;font-size:20px;font-weight:900;cursor:pointer}.drop-btn:hover{background:#ef4444}
+#message{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,10,18,.72);z-index:200}.message-card{width:min(480px,90%);background:#101b2b;border:1px solid #3b4b61;border-radius:16px;padding:26px;text-align:center}.message-card h2{font-size:34px;margin:0 0 12px}.stars{font-size:34px;letter-spacing:5px}.message-card button{margin-top:16px;padding:12px 22px;border:0;border-radius:9px;background:#2563eb;color:white;font-weight:900;cursor:pointer}
+.fall{animation:fall .75s ease-in forwards}@keyframes fall{to{top:445px}}.shake{animation:shake .45s}@keyframes shake{20%{transform:translate(-7px,3px)}40%{transform:translate(8px,-2px)}60%{transform:translate(-5px,2px)}80%{transform:translate(4px,-1px)}}.collapse{animation:collapse 1.2s forwards}@keyframes collapse{to{transform:translateY(160px) rotate(5deg);opacity:.35}}.flex{animation:flex .45s}@keyframes flex{30%{transform:translateY(7px)}60%{transform:translateY(-2px)}}
+@media(max-width:850px){.game{grid-template-columns:1fr}.world{min-height:720px}.controls{border-right:0;max-height:none}}
+</style>
+</head>
+<body>
+<header><div class="logo"><h1>🌉 BRIDGE DROP</h1><p>최소 비용으로 최강의 다리를 설계하라</p></div><div class="stage" id="stageLabel">STAGE 1</div></header>
+<div class="game">
+<aside class="controls">
+<div class="control"><div class="control-title">BRIDGE TYPE</div><select id="bridgeType"><option value="beam">빔교</option><option value="truss">트러스교</option><option value="cable">사장교</option><option value="suspension">현수교</option></select></div>
+<div class="control sub-controls" id="trussControls" style="display:none"><div class="control-title">TRUSS PANEL COUNT</div><input id="trussPanelCount" type="range" min="4" max="12" step="2" value="8"><div class="value"><span id="trussPanelCountValue">8</span> PANELS</div><div class="hint">패널 증가 → 부재 길이 감소 / 비용 증가</div></div>
+<div class="control"><div class="control-title">MATERIAL</div><select id="material"><option value="wood">목재</option><option value="concrete">콘크리트</option><option value="steel" selected>구조용 강재</option><option value="highSteel">고강도 강재</option></select></div>
+<div class="control"><div class="control-title">MEMBER SIZE</div><input id="thickness" type="range" min="20" max="100" step="5" value="40"><div class="value"><span id="thicknessValue">40</span> mm</div></div>
+<div class="control sub-controls" id="cableControls" style="display:none"><div class="control-title">CABLE COUNT</div><input id="cableCount" type="range" min="4" max="20" step="2" value="8"><div class="value"><span id="cableCountValue">8</span> 개</div><br><div class="control-title">CABLE DIAMETER</div><input id="cableDiameter" type="range" min="10" max="60" step="5" value="30"><div class="value"><span id="cableDiameterValue">30</span> mm</div></div>
+<div class="control sub-controls" id="suspensionControls" style="display:none"><div class="control-title">HANGER COUNT</div><input id="hangerCount" type="range" min="4" max="24" step="2" value="10"><div class="value"><span id="hangerCountValue">10</span> 개</div><br><div class="control-title">MAIN CABLE DIAMETER</div><input id="mainCableDiameter" type="range" min="20" max="100" step="5" value="50"><div class="value"><span id="mainCableDiameterValue">50</span> mm</div></div>
+<div class="cost-box"><div class="control-title">ESTIMATED COST</div><div class="cost" id="cost">₩ 0</div></div>
+<div id="budgetSystem"><div class="budget-row"><span>BUDGET</span><b id="budgetValue">₩ 0</b></div><div class="budget-row"><span>REMAINING</span><b id="remainingBudget">₩ 0</b></div><div id="budgetBar"><div id="budgetFill"></div></div><div id="budgetStatus">READY</div></div>
+</aside>
+<main class="world" id="world">
+<div class="sun"></div><div class="mountain m1"></div><div class="mountain m2"></div><div class="water"></div><div class="cliff left"></div><div class="cliff right"></div>
+<div class="results">
+<div class="result-row"><span class="result-label">LOAD</span><span class="result-value" id="loadResult">-</span></div>
+<div class="result-row"><span class="result-label">STRESS</span><span class="result-value" id="stressResult">-</span></div>
+<div class="result-row"><span class="result-label">SAFETY FACTOR</span><span class="result-value" id="safetyResult">-</span></div>
+<div class="result-row"><span class="result-label">CRITICAL</span><span class="result-value" id="criticalResult">-</span></div>
+<div id="finalResult">READY</div></div>
+<div id="dropObject">🚗</div>
+<div class="bridge-container"><svg id="bridgeGraphic" viewBox="0 0 1000 300"></svg></div>
+<button class="drop-btn" id="dropBtn">💥 DROP TEST</button>
+<div id="message"><div class="message-card"><h2 id="messageTitle"></h2><div class="stars" id="messageStars"></div><p id="messageText"></p><button id="messageBtn">MODIFY DESIGN</button></div></div>
+</main></div>
+<script>
+const GRAVITY=9.81,IMPACT_FACTOR=2,PASS_FS=1.5;
+const materials={wood:{strength:40,price:.8},concrete:{strength:30,price:1},steel:{strength:250,price:2.5},highSteel:{strength:400,price:4}};
+const stages=[
+{name:"CAR",icon:"🚗",mass:1500},{name:"LARGE SUV",icon:"🚙",mass:2500},
+{name:"VAN",icon:"🚐",mass:4000},{name:"SMALL TRUCK",icon:"🚚",mass:8000},
+{name:"HEAVY TRUCK",icon:"🚛",mass:20000},{name:"BUS",icon:"🚌",mass:30000},
+{name:"TANK",icon:"🛡️",mass:50000},{name:"LOCOMOTIVE",icon:"🚂",mass:80000},
+{name:"AIRLINER",icon:"✈️",mass:150000},{name:"MEGA CARGO",icon:"🚢",mass:250000}];
+const spanChoices=[20,25,30,35,40,50,60,70,80,90,100,120,140,160,180];
+let currentStage=1,currentSpan=30,currentBudget=0,bestThreeStarDesign=null,busy=false;
+const $=id=>document.getElementById(id);
+
+function designCost(d){
+ const mat=materials[d.material]; let factor=1;
+ if(d.type==="truss")factor=1.55*(1+(d.panels-8)*.0375);
+ else if(d.type==="cable")factor=2;
+ else if(d.type==="suspension")factor=2.8;
+ let cost=25000000*factor*mat.price*(d.t/40);
+ if(d.type==="cable")cost+=d.cables*d.diameter*80000;
+ if(d.type==="suspension")cost+=d.diameter*500000+d.hangers*600000;
+ const spanFactor=Math.pow(currentSpan/60,.72);
+ // Short-span systems are cheap early; cable systems become relatively economical as span grows.
+ let spanTypeFactor=1;
+ if(d.type==="beam") spanTypeFactor=1+Math.max(0,currentSpan-55)/70;
+ else if(d.type==="truss") spanTypeFactor=.95+Math.max(0,currentSpan-90)/150;
+ else if(d.type==="cable") spanTypeFactor=1.18-Math.min(.28,Math.max(0,currentSpan-70)/300);
+ else if(d.type==="suspension") spanTypeFactor=1.42-Math.min(.50,Math.max(0,currentSpan-80)/200);
+ return cost*spanFactor*spanTypeFactor;
+}
+function evaluateDesign(d){
+ const stage=stages[currentStage-1],P=stage.mass*GRAVITY*IMPACT_FACTOR,span=currentSpan,strength=materials[d.material].strength;
+ let stress=0,FS=0,critical="";
+
+ // Game model: all four systems remain based on stress/FS, but their structural
+ // efficiency changes with span so one bridge type cannot dominate every case.
+ if(d.type==="beam"){
+  const b=300,h=d.t*10,I=b*h**3/12,c=h/2,L=span*1000,M=P*L/4;
+  stress=M*c/I;
+  FS=strength/stress;
+  // Beam is efficient at short spans, rapidly loses efficiency at long spans.
+  FS*=Math.max(.16,1.18*Math.pow(45/Math.max(span,25),1.15));
+  critical="DECK BENDING";
+ }else if(d.type==="truss"){
+  const height=span/5,panelLength=span/d.panels;
+  const diagonalLength=Math.hypot(panelLength,height),theta=Math.atan(height/panelLength);
+  const force=P/(2*Math.max(.20,Math.sin(theta)));
+  // t is now much closer to the displayed member size; old (5t)^2 made trusses overpowered.
+  const side=d.t*2.5,area=side**2;
+  stress=force/area;
+  FS=strength/stress;
+  // Best around medium spans.
+  const eff=Math.exp(-Math.pow((span-70)/65,2));
+  FS*=.72+1.05*eff;
+  const slender=diagonalLength/(span/8);
+  if(slender>1)FS/=Math.pow(slender,.72);
+  critical="TRUSS MEMBER";
+ }else if(d.type==="cable"){
+  const cableLoad=P*.82,deckLoad=P*.18;
+  const towerHeight=Math.max(18,span*.22),theta=Math.atan((2*towerHeight)/span);
+  const cableForce=cableLoad/(d.cables*Math.max(.25,Math.sin(theta)));
+  const cableArea=Math.PI*d.diameter**2/4,cableStress=cableForce/cableArea,cableFS=1000/cableStress;
+  const towerArea=(d.t*7)**2,towerStress=(cableLoad*.55)/towerArea,towerFS=strength/towerStress;
+  const b=300,h=d.t*10,I=b*h**3/12,c=h/2;
+  const supportedSpan=(span/(d.cables/2+1))*1000,M=deckLoad*supportedSpan/4;
+  const deckStress=M*c/I,deckFS=strength/deckStress;
+  FS=Math.min(cableFS,towerFS,deckFS);
+  const eff=Math.exp(-Math.pow((span-115)/75,2));
+  FS*=.72+1.00*eff;
+  if(FS===cableFS){stress=cableStress;critical="CABLE TENSION"}
+  else if(FS===towerFS){stress=towerStress;critical="TOWER"}
+  else{stress=deckStress;critical="DECK BENDING"}
+ }else{
+  const sag=Math.max(10,span/9),w=P/span,H=w*span**2/(8*sag),V=P/2,T=Math.hypot(H,V);
+  const cableArea=Math.PI*d.diameter**2/4,cableStress=T/cableArea,cableFS=1000/cableStress;
+  const towerArea=(d.t*7)**2,towerStress=(P*.42)/towerArea,towerFS=strength/towerStress;
+  const panelLength=span/(d.hangers+1)*1000,b=300,h=d.t*10,I=b*h**3/12,c=h/2;
+  const M=(P*.35)*panelLength/4,deckStress=M*c/I,deckFS=strength/deckStress;
+  FS=Math.min(cableFS,towerFS,deckFS);
+  // Expensive/inefficient when short, strongest relative choice at very long spans.
+  const eff=.45+1.35/(1+Math.exp(-(span-105)/24));
+  FS*=eff;
+  if(FS===cableFS){stress=cableStress;critical="MAIN CABLE"}
+  else if(FS===towerFS){stress=towerStress;critical="TOWER"}
+  else{stress=deckStress;critical="DECK BENDING"}
+ }
+ return {P,stress,FS,critical};
+}
+function findCheapestSafeDesign(){
+ let best=null;
+ function check(d){const r=evaluateDesign(d);if(r.FS<PASS_FS)return;const cost=designCost(d);if(!best||cost<best.cost)best={...d,cost,FS:r.FS}}
+ for(const material of Object.keys(materials))for(let t=20;t<=100;t+=5){
+  check({type:"beam",material,t});
+  for(let panels=4;panels<=12;panels+=2)check({type:"truss",material,t,panels});
+  for(let cables=4;cables<=20;cables+=2)for(let diameter=10;diameter<=60;diameter+=5)check({type:"cable",material,t,cables,diameter});
+  for(let hangers=4;hangers<=24;hangers+=2)for(let diameter=20;diameter<=100;diameter+=5)check({type:"suspension",material,t,hangers,diameter});
+ }
+ return best;
+}
+function balanceBudget(){bestThreeStarDesign=findCheapestSafeDesign();if(!bestThreeStarDesign){currentBudget=500000000;return}currentBudget=Math.ceil((bestThreeStarDesign.cost/.68)/100000)*100000}
+function currentDesign(){const type=$("bridgeType").value;return{type,material:$("material").value,t:+$("thickness").value,panels:+$("trussPanelCount").value,cables:+$("cableCount").value,hangers:+$("hangerCount").value,diameter:type==="suspension"?+$("mainCableDiameter").value:+$("cableDiameter").value}}
+function starsFor(cost){const r=cost/currentBudget;if(r<=.70)return 3;if(r<=.90)return 2;return 1}
+function money(n){return(n<0?"-":"")+"₩ "+Math.abs(Math.round(n)).toLocaleString()}
+function updateCostBudget(){
+ const cost=designCost(currentDesign()),remain=currentBudget-cost,ratio=cost/currentBudget;
+ $("cost").textContent=money(cost);$("budgetValue").textContent=money(currentBudget);$("remainingBudget").textContent=money(remain);
+ $("budgetFill").style.width=Math.min(100,ratio*100)+"%";
+ if(ratio>1){$("budgetFill").style.background="#ef4444";$("budgetStatus").textContent="⚠ OVER BUDGET"}
+ else if(ratio<=.70){$("budgetFill").style.background="#22c55e";$("budgetStatus").textContent="⭐⭐⭐ 3-STAR COST"}
+ else if(ratio<=.90){$("budgetFill").style.background="#f59e0b";$("budgetStatus").textContent="⭐⭐ 2-STAR COST"}
+ else{$("budgetFill").style.background="#f97316";$("budgetStatus").textContent="⭐ 1-STAR COST"}
+}
+function drawBridge(){
+ const svg=$("bridgeGraphic"),d=currentDesign(),deckW=Math.max(8,5+d.t*.18),memberW=Math.max(4,2.5+d.t*.13),towerW=Math.max(9,5+d.t*.2);
+ svg.setAttribute("class","mat-"+d.material);
+ let s=`<path d="M70 184 L145 184 L145 260 L85 260 L85 220 L70 220 Z" class="support"/><path d="M855 184 L930 184 L930 220 L915 220 L915 260 L855 260 Z" class="support"/><rect x="130" y="184" width="35" height="10" class="bearing"/><rect x="835" y="184" width="35" height="10" class="bearing"/>`;
+ if(d.type==="beam")s+=`<line x1="145" y1="203" x2="855" y2="203" class="deck-bottom" stroke-width="${deckW}"/><line x1="130" y1="184" x2="870" y2="184" class="deck" stroke-width="${deckW}"/>`;
+ else if(d.type==="truss"){
+  const x0=130,x1=870,y0=184,yt=78,pw=(x1-x0)/d.panels;
+  s+=`<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y0}" class="truss-member" stroke-width="${memberW}"/><line x1="${x0}" y1="${yt}" x2="${x1}" y2="${yt}" class="truss-member" stroke-width="${memberW}"/>`;
+  for(let i=0;i<=d.panels;i++){const x=x0+i*pw;s+=`<line x1="${x}" y1="${yt}" x2="${x}" y2="${y0}" class="truss-member" stroke-width="${memberW}"/><circle cx="${x}" cy="${y0}" r="${Math.max(5,memberW*.55)}" class="joint"/>`;if(i<d.panels){const nx=x0+(i+1)*pw;s+=i<d.panels/2?`<line x1="${x}" y1="${y0}" x2="${nx}" y2="${yt}" class="truss-member" stroke-width="${memberW}"/>`:`<line x1="${x}" y1="${yt}" x2="${nx}" y2="${y0}" class="truss-member" stroke-width="${memberW}"/>`}}
+ }else if(d.type==="cable"){
+  const cw=Math.max(1.5,1+d.diameter*.11);s+=`<line x1="130" y1="184" x2="870" y2="184" class="deck" stroke-width="${deckW}"/><line x1="500" y1="45" x2="500" y2="205" class="tower" stroke-width="${towerW}"/>`;
+  for(let i=1;i<=d.cables/2;i++){const dx=i*(330/(d.cables/2)),y=55+i*10;s+=`<line x1="500" y1="${y}" x2="${500-dx}" y2="184" class="stay-cable" stroke-width="${cw}"/><line x1="500" y1="${y}" x2="${500+dx}" y2="184" class="stay-cable" stroke-width="${cw}"/>`}
+ }else{
+  const cw=Math.max(2,1+d.diameter*.09);s+=`<line x1="130" y1="184" x2="870" y2="184" class="deck" stroke-width="${deckW}"/><line x1="260" y1="65" x2="260" y2="205" class="tower" stroke-width="${towerW}"/><line x1="740" y1="65" x2="740" y2="205" class="tower" stroke-width="${towerW}"/><path d="M130 110 Q260 50 500 135 Q740 50 870 110" class="main-cable" stroke-width="${cw}"/>`;
+  for(let i=0;i<d.hangers;i++){const x=150+i*(700/(d.hangers-1)),y=85+50*Math.abs((x-500)/350);s+=`<line x1="${x}" y1="${y}" x2="${x}" y2="184" class="hanger" stroke-width="${Math.max(1,cw*.55)}"/>`}
+ }
+ s+=`<line x1="125" y1="176" x2="875" y2="176" class="road"/><line x1="135" y1="170" x2="865" y2="170" class="road-line"/>`;svg.innerHTML=s;
+}
+function resetResult(){$("loadResult").textContent="-";$("stressResult").textContent="-";$("safetyResult").textContent="-";$("criticalResult").textContent="-";$("finalResult").textContent="READY";$("message").style.display="none";$("bridgeGraphic").classList.remove("collapse","flex");$("world").classList.remove("shake");$("dropObject").style.top="110px";$("dropObject").className="";busy=false}
+function randomizeSpan(){
+ const old=currentSpan;
+ let candidates=spanChoices.filter(x=>x!==old);
+ // 45% chance to deliberately choose a span far away from the previous one.
+ if(Math.random()<.45 && old){
+   const far=candidates.filter(x=>Math.abs(x-old)>=70);
+   if(far.length)candidates=far;
+ }
+ currentSpan=candidates[Math.floor(Math.random()*candidates.length)];
+}
+function updateVisualSpan(){
+ const pct=48+((Math.max(20,Math.min(180,currentSpan))-20)/160)*34;
+ const bc=document.querySelector(".bridge-container");
+ bc.style.width=pct+"%";
+ bc.style.left=(50-pct/2)+"%";
+}
+function prepareAttempt(){
+ randomizeSpan();
+ const st=stages[currentStage-1];
+ $("stageLabel").textContent=`STAGE ${currentStage} | ${st.name} | ${st.mass.toLocaleString()} kg | SPAN ${currentSpan} m`;
+ $("dropObject").textContent=st.icon;
+ updateVisualSpan();
+ balanceBudget();
+ resetResult();
+ drawBridge();
+ updateCostBudget();
+}
+function loadStage(n){currentStage=n;prepareAttempt()}
+function showMessage(title,stars,text,button){$("messageTitle").textContent=title;$("messageStars").textContent=stars;$("messageText").textContent=text;$("messageBtn").textContent=button;$("message").style.display="flex"}
+function dropTest(){
+ if(busy)return;const d=currentDesign(),cost=designCost(d);
+ if(cost>currentBudget){showMessage("OVER BUDGET","",`예산을 ${money(cost-currentBudget)} 초과했습니다.`,"MODIFY DESIGN");return}
+ busy=true;$("dropObject").classList.add("fall");
+ setTimeout(()=>{const r=evaluateDesign(d);$("loadResult").textContent=(r.P/1000).toFixed(1)+" kN";$("stressResult").textContent=r.stress.toFixed(2)+" MPa";$("safetyResult").textContent=r.FS.toFixed(2);$("criticalResult").textContent=r.critical;
+  if(r.FS>=PASS_FS){$("finalResult").textContent="✅ SURVIVED";$("bridgeGraphic").classList.add("flex");const stars=starsFor(cost);setTimeout(()=>showMessage("STAGE CLEAR!","⭐".repeat(stars),`FS ${r.FS.toFixed(2)} / COST ${money(cost)}`,currentStage<stages.length?"NEXT STAGE":"PLAY AGAIN"),500)}
+  else{$("finalResult").textContent="💥 FAILED";$("bridgeGraphic").classList.add("collapse");$("world").classList.add("shake");setTimeout(()=>showMessage("FAILURE ANALYSIS","",`${r.critical} 실패 · FS ${r.FS.toFixed(2)} / 필요한 기준 ${PASS_FS}`,"MODIFY DESIGN"),500)}
+ },800);
+}
+function updateControlVisibility(){const type=$("bridgeType").value;$("trussControls").style.display=type==="truss"?"block":"none";$("cableControls").style.display=type==="cable"?"block":"none";$("suspensionControls").style.display=type==="suspension"?"block":"none"}
+function refresh(){updateControlVisibility();resetResult();drawBridge();updateCostBudget()}
+[["thickness","thicknessValue"],["trussPanelCount","trussPanelCountValue"],["cableCount","cableCountValue"],["cableDiameter","cableDiameterValue"],["hangerCount","hangerCountValue"],["mainCableDiameter","mainCableDiameterValue"]].forEach(([id,out])=>$(id).addEventListener("input",()=>{$(out).textContent=$(id).value;refresh()}));
+$("bridgeType").addEventListener("change",refresh);$("material").addEventListener("change",refresh);$("dropBtn").addEventListener("click",dropTest);
+$("messageBtn").addEventListener("click",()=>{if($("messageTitle").textContent==="STAGE CLEAR!"){currentStage=currentStage<stages.length?currentStage+1:1;loadStage(currentStage)}else{prepareAttempt()}});
+window.show3StarSolution=()=>{console.log("STAGE:",currentStage,"SPAN:",currentSpan,"BUDGET:",currentBudget);console.table(bestThreeStarDesign);return bestThreeStarDesign};
+updateControlVisibility();loadStage(1);
+</script>
+</body>
+</html>
